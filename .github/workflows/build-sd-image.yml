@@ -29,6 +29,9 @@ jobs:
           large-packages: true
           docker-images: false
 
+      - name: QEMU/binfmt (multi-arch, F-flag)
+        uses: docker/setup-qemu-action@v3
+
       - name: Image bouwen (pi-gen)
         id: build
         uses: usimd/pi-gen-action@v1
