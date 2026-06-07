@@ -16,7 +16,9 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # ubuntu-22.04: de 24.04-runner heeft een gewijzigde binfmt/Docker-afhandeling
+    # waardoor pi-gen's interne qemu-binfmt-registratie faalt; 22.04 werkt breed.
+    runs-on: ubuntu-22.04
     timeout-minutes: 120
     steps:
       - name: Checkout
