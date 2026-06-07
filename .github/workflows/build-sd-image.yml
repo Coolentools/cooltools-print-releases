@@ -31,11 +31,13 @@ jobs:
       - name: QEMU/binfmt (ARM-emulatie voor pi-gen)
         run: |
           sudo apt-get update
-          # pi-gen's build-docker.sh doet `which qemu-arm` → die binary zit in
-          # qemu-user-binfmt (qemu-user-static levert alleen qemu-arm-static).
-          sudo apt-get install -y qemu-user qemu-user-binfmt qemu-user-static binfmt-support
+          # pi-gen's build-docker.sh doet alleen `which qemu-arm` → die binary
+          # zit in qemu-user. (qemu-user-binfmt en qemu-user-static conflicteren
+          # met elkaar; qemu-user zelf conflicteert met geen van beide.)
+          sudo apt-get install -y qemu-user binfmt-support
           which qemu-arm
-          # F-flag-registratie voor de Docker-chroot (belt & braces).
+          # De daadwerkelijke ARM-emulatie in de Docker-chroot loopt via binfmt
+          # met de F-flag (statische qemu) — dat regelt tonistiigi/binfmt.
           docker run --privileged --rm tonistiigi/binfmt --install all
           update-binfmts --display | grep -i qemu || true
 
