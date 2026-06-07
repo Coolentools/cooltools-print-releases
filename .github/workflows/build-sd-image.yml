@@ -37,7 +37,7 @@ jobs:
           # Lite (stage0-2) + onze eigen stage met de eerste-boot auto-install.
           stage-list: stage0 stage1 stage2 ./pi-image/stage-printbridge
           release: bookworm
-          enable-ssh: true
+          enable-ssh: 1
           username: cooltools
           password: changeme
           hostname: cooltools-print
