@@ -4,8 +4,10 @@ IMG_NAME="printbridge"
 RELEASE="bookworm"
 DEPLOY_COMPRESSION="xz"
 DEPLOY_ZIP=0
-# Lite (geen desktop) + onze eigen stage erachter.
-STAGE_LIST="stage0 stage1 stage2 ${BASE_DIR}/stage-printbridge"
+# Lite (geen desktop) + onze eigen stage erachter. Relatieve naam: de stage staat
+# in de pi-gen-root (door build.sh/CI erheen gekopieerd). NIET ${BASE_DIR}
+# gebruiken — die is nog niet gezet als pi-gen de config sourcet (set -u → fout).
+STAGE_LIST="stage0 stage1 stage2 stage-printbridge"
 TARGET_HOSTNAME="cooltools-print"
 ENABLE_SSH=1
 LOCALE_DEFAULT="nl_NL.UTF-8"
