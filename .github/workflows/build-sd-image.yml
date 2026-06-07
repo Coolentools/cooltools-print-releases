@@ -39,6 +39,11 @@ jobs:
         uses: usimd/pi-gen-action@v1
         with:
           image-name: printbridge
+          # pi-gen-version = de pi-gen-REPO-branch. De action default is de stale
+          # 'arm64'-branch (verouderde keyrings → GPG-fout); de onderhouden
+          # 'bookworm'-branch (armhf, prima voor een Pi-printserver) heeft actuele
+          # keyrings.
+          pi-gen-version: bookworm
           # Lite (stage0-2) + onze eigen stage met de eerste-boot auto-install.
           stage-list: stage0 stage1 stage2 ./pi-image/stage-printbridge
           release: bookworm
