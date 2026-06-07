@@ -1,11 +1,12 @@
 # GitHub Actions-workflow: bouwt het kant-en-klaar Print Bridge SD-image met
 # pi-gen en hangt het aan de release. Hoort in de PUBLIEKE release-repo
 # (.github/workflows/build-sd-image.yml), samen met een kopie van de map
-# pi-image/ (stage-printbridge + config).
+# pi-image/ (stage-printbridge).
+#
+# Gebruikt de onderhouden usimd/pi-gen-action, die de pi-gen-/Docker-/binfmt-
+# (qemu-ARM-)setup correct afhandelt — handmatige binfmt-stappen zijn fragiel.
 #
 # Draait: handmatig (Actions → Run workflow) OF automatisch bij een nieuwe release.
-# NB: één keer laten draaien om te valideren — pi-gen/runner-details kunnen
-# aanpassing vergen (disk/branch/binfmt).
 name: Build SD image
 
 on:
@@ -28,47 +29,31 @@ jobs:
           large-packages: true
           docker-images: false
 
-      - name: QEMU/binfmt (ARM-emulatie voor pi-gen)
-        run: |
-          sudo apt-get update
-          # pi-gen's build-docker.sh doet alleen `which qemu-arm` → die binary
-          # zit in qemu-user. (qemu-user-binfmt en qemu-user-static conflicteren
-          # met elkaar; qemu-user zelf conflicteert met geen van beide.)
-          sudo apt-get install -y qemu-user binfmt-support
-          which qemu-arm
-          # De daadwerkelijke ARM-emulatie in de Docker-chroot loopt via binfmt
-          # met de F-flag (statische qemu) — dat regelt tonistiigi/binfmt.
-          docker run --privileged --rm tonistiigi/binfmt --install all
-          update-binfmts --display | grep -i qemu || true
-
-      - name: pi-gen ophalen
-        run: git clone --depth 1 https://github.com/RPi-Distro/pi-gen pi-gen
-
-      - name: Stage + config plaatsen
-        run: |
-          cp -r pi-image/stage-printbridge pi-gen/stage-printbridge
-          find pi-gen/stage-printbridge -type f -name '*.sh' -exec chmod +x {} \;
-          cp pi-image/config pi-gen/config
-
-      - name: Image bouwen (pi-gen, Docker)
-        working-directory: pi-gen
-        run: ./build-docker.sh -c "$PWD/config"
-
-      - name: Image lokaliseren
-        id: img
-        run: |
-          IMG="$(ls pi-gen/deploy/*-printbridge.img.xz 2>/dev/null | head -1)"
-          test -n "$IMG" || { echo "Geen image gevonden"; ls -R pi-gen/deploy || true; exit 1; }
-          echo "path=$IMG" >> "$GITHUB_OUTPUT"
+      - name: Image bouwen (pi-gen)
+        id: build
+        uses: usimd/pi-gen-action@v1
+        with:
+          image-name: printbridge
+          # Lite (stage0-2) + onze eigen stage met de eerste-boot auto-install.
+          stage-list: stage0 stage1 stage2 ./pi-image/stage-printbridge
+          release: bookworm
+          enable-ssh: true
+          username: cooltools
+          password: changeme
+          hostname: cooltools-print
+          locale: nl_NL.UTF-8
+          timezone: Europe/Amsterdam
+          compression: xz
+          verbose-output: true
 
       - name: Uploaden als workflow-artifact
         uses: actions/upload-artifact@v4
         with:
           name: printbridge-sd-image
-          path: ${{ steps.img.outputs.path }}
+          path: ${{ steps.build.outputs.image-path }}
 
       - name: Aan de release hangen (bij een release-trigger)
         if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.img.outputs.path }}" --clobber
+        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.build.outputs.image-path }}" --clobber
