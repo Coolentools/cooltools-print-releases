@@ -34,6 +34,11 @@ jobs:
       - name: QEMU/binfmt (multi-arch, F-flag)
         uses: docker/setup-qemu-action@v3
 
+      - name: Stage-scripts uitvoerbaar maken
+        # pi-gen vereist dat prerun.sh (kopieert de rootfs) + sub-stage-scripts
+        # uitvoerbaar zijn; het exec-bit overleeft een commit vanaf Windows niet.
+        run: chmod +x pi-image/stage-printbridge/prerun.sh pi-image/stage-printbridge/00-printbridge/*.sh
+
       - name: Image bouwen (pi-gen)
         id: build
         uses: usimd/pi-gen-action@v1
