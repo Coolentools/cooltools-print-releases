@@ -41,10 +41,10 @@ jobs:
           username: cooltools
           password: changeme
           hostname: cooltools-print
-          locale: nl_NL.UTF-8
-          timezone: Europe/Amsterdam
           compression: xz
           verbose-output: true
+          # locale/timezone weggelaten: de action-validatie is daar streng over en
+          # ze zijn niet nodig voor een werkende image (instelbaar bij eerste boot).
 
       - name: Uploaden als workflow-artifact
         uses: actions/upload-artifact@v4
