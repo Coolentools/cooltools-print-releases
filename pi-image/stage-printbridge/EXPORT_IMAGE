@@ -1,0 +1,2 @@
+# Aanwezigheid van dit bestand => pi-gen exporteert na deze stage een image.
+IMG_SUFFIX="-printbridge"

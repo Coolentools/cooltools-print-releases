@@ -1,0 +1,64 @@
+# GitHub Actions-workflow: bouwt het kant-en-klaar Print Bridge SD-image met
+# pi-gen en hangt het aan de release. Hoort in de PUBLIEKE release-repo
+# (.github/workflows/build-sd-image.yml), samen met een kopie van de map
+# pi-image/ (stage-printbridge + config).
+#
+# Draait: handmatig (Actions → Run workflow) OF automatisch bij een nieuwe release.
+# NB: één keer laten draaien om te valideren — pi-gen/runner-details kunnen
+# aanpassing vergen (disk/branch/binfmt).
+name: Build SD image
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Maak schijfruimte vrij
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          large-packages: true
+          docker-images: false
+
+      - name: QEMU/binfmt (ARM-emulatie)
+        run: docker run --privileged --rm tonistiigi/binfmt --install all
+
+      - name: pi-gen ophalen
+        run: git clone --depth 1 https://github.com/RPi-Distro/pi-gen pi-gen
+
+      - name: Stage + config plaatsen
+        run: |
+          cp -r pi-image/stage-printbridge pi-gen/stage-printbridge
+          find pi-gen/stage-printbridge -type f -name '*.sh' -exec chmod +x {} \;
+          cp pi-image/config pi-gen/config
+
+      - name: Image bouwen (pi-gen, Docker)
+        working-directory: pi-gen
+        run: ./build-docker.sh -c "$PWD/config"
+
+      - name: Image lokaliseren
+        id: img
+        run: |
+          IMG="$(ls pi-gen/deploy/*-printbridge.img.xz 2>/dev/null | head -1)"
+          test -n "$IMG" || { echo "Geen image gevonden"; ls -R pi-gen/deploy || true; exit 1; }
+          echo "path=$IMG" >> "$GITHUB_OUTPUT"
+
+      - name: Uploaden als workflow-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: printbridge-sd-image
+          path: ${{ steps.img.outputs.path }}
+
+      - name: Aan de release hangen (bij een release-trigger)
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.img.outputs.path }}" --clobber
